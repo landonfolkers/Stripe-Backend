@@ -3,7 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const morgan = require('morgan');
 const cors = require('cors');
-let stripe = require('stripe')('sk_test_FnkbAQtTmcE2zGCCjBCKRP2S')
+let stripe = require('stripe')(process.env.STRIPE_KEY)
 
 const app = express();
 
@@ -13,19 +13,17 @@ app.use(bodyParser.json());
 app.use(cors());
 
 app.post('/charge', (req, res) => {
-  let token = req.body.stripeToken
-  let charge = stripe.charges.create({
-    amount: req.body.amount * 100,
-    currency: 'usd',
-    description: 'galvanize payment',
-    source: token
-  }, (err, charge) => {
-    if (err) {
-      res.send(err)
-    } else {
-      res.send({amount: charge.amount / 100})
-    };
-  });
+    const options = {
+      amount: +req.body.amount,
+      currency: "usd",
+      description: req.body.description,
+      source: req.body.token,
+  };
+  stripe.charges.create(options, (error, charge) => {
+      error
+          ? res.status(400).json({error: error.message})
+          : res.json({data: charge});
+  })
 });
 
 app.get('/', (req, res) => {
